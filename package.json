@@ -1,6 +1,6 @@
 {
   "name": "sitemap-insights",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Report Lighthouse results from all urls in a sitemap.xml to Application Insights",
   "main": "lib/index.js",
   "repository": "https://github.com/rdacorporation/sitemap-insights",
