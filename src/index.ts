@@ -7,6 +7,7 @@ import { writeAsync } from 'fs-jetpack';
 import * as Url from 'url';
 import * as path from 'path';
 import { kebabCase, get } from 'lodash';
+import * as moment from 'moment';
 import * as appInsights from 'applicationinsights';
 import * as minimist from 'minimist';
 
@@ -39,10 +40,11 @@ appInsights.setup().start();
 
 const instrumentPage = (url: string) => {
     const cmdToExecute = `lighthouse ${url}`;
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         debug(`Invoking ${cmdToExecute}`);
         const args = [
             url,
+            '--quiet',
             '--output=json',
             `--output-path=stdout`,
             '--chrome-flags=--headless --window-size=800x600 --disable-gpu',
@@ -57,12 +59,24 @@ const instrumentPage = (url: string) => {
         }
 
         const lighthousePath = require.resolve('lighthouse/lighthouse-cli/index.js');
-        
-        exec(`node ${lighthousePath} ${args.join(' ')}`, async (_err, stdout, _stderr) => {
-            
+        const startTime = moment();
+        exec(`node ${lighthousePath} ${args.join(' ')}`, async (err, stdout, stderr) => {
             const uri = Url.parse(url);
+            const endTime = moment();
+            if (err || stderr) {
+                appInsights.defaultClient.trackDependency({
+                    target: uri.host,
+                    name: "Lighthouse",
+                    data: `GET ${uri.pathname}`,
+                    duration: endTime.diff(startTime),
+                    resultCode: 0,
+                    success: false,
+                    dependencyTypeName: "HTTP",
+                });
+                reject(stderr);
+            }
+            
             const stats = JSON.parse(stdout);
-            const ttfb = get(stats, 'audits.time-to-first-byte.numericValue');
 
             let properties = {};
             const audits = get(stats, 'audits');
@@ -72,12 +86,13 @@ const instrumentPage = (url: string) => {
                     properties[key] = metric['numericValue'];
                 }
             }
+
             appInsights.defaultClient.trackDependency({
                 target: uri.host,
                 name: "Lighthouse",
                 data: `GET ${uri.pathname}`,
-                duration: ttfb,
-                resultCode: 0,
+                duration: endTime.diff(startTime),
+                resultCode: 200,
                 success: true,
                 dependencyTypeName: "HTTP",
                 properties
