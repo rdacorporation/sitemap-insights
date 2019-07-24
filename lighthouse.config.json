@@ -1,0 +1,23 @@
+{
+    "extends": "lighthouse:default",
+    "settings": {
+      "onlyCategories": [
+        "Accessibility",
+        "Performance",
+        "Best Practices"
+      ],
+      "onlyAudits": [
+        "accesskeys",
+        "aria-allowed-attr",
+        "external-anchors-use-rel-noopener",
+        "geolocation-on-start",
+        "no-document-write",
+        "no-mutation-events",
+        "no-old-flexbox",
+        "time-to-interactive",
+        "user-timings",
+        "viewport",
+        "without-javascript"
+      ]
+    }
+  }
