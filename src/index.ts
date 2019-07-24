@@ -46,9 +46,11 @@ const instrumentPage = (url: string) => {
             '--output=json',
             `--output-path=stdout`,
             '--chrome-flags=--headless --window-size=800x600 --disable-gpu',
-            '--disable-device-emulation',
+            '--emulated-form-factor=none',
+            '--throttling-method=provided',
             '--disable-cpu-throttling',
             '--disable-network-throttling',
+            '--max-wait-for-load=300000' // sigh.
         ]
         if (configPath) {
             args.push(`--config-path=${path.resolve(configPath)}`)
@@ -57,6 +59,7 @@ const instrumentPage = (url: string) => {
         const lighthousePath = require.resolve('lighthouse/lighthouse-cli/index.js');
         
         exec(`node ${lighthousePath} ${args.join(' ')}`, async (_err, stdout, _stderr) => {
+            
             const uri = Url.parse(url);
             const stats = JSON.parse(stdout);
             const ttfb = get(stats, 'audits.time-to-first-byte.numericValue');
@@ -95,7 +98,7 @@ axios.get(sitemapUrl)
         for (const ix in sitemap.urlset.url) {
             const url = sitemap.urlset.url[ix];
             actions.push(
-                () => instrumentPage(url.loc._text)
+                () => instrumentPage(url.loc._text).catch((err) => debug(err))
             );
         }
 
