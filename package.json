@@ -2,7 +2,7 @@
   "name": "sitemap-insights",
   "version": "0.1.0",
   "description": "Report Lighthouse results from all urls in a sitemap.xml to Application Insights",
-  "main": "index.js",
+  "main": "lib/index.js",
   "repository": "https://github.com/rdacorporation/sitemap-insights",
   "author": "Sean McLellan",
   "license": "MIT",
@@ -14,7 +14,6 @@
     "start:insights": "node ./lib/index.js"
   },
   "dependencies": {
-    "@types/debug": "^4.1.4",
     "applicationinsights": "^1.4.0",
     "axios": "^0.19.0",
     "chrome-launcher": "^0.11.1",
@@ -28,6 +27,7 @@
     "xml-js": "^1.6.11"
   },
   "devDependencies": {
+    "@types/debug": "^4.1.4",
     "@types/minimist": "^1.2.0",
     "@types/node": "^12.6.8",
     "@types/prettier": "^1.18.0",
