@@ -1,5 +1,5 @@
 import createDebug from 'debug';
-import { spawn } from 'child_process';
+import { exec } from 'child_process';
 import axios from 'axios';
 import { xml2js } from 'xml-js';
 import pAll from 'p-all';
@@ -50,21 +50,15 @@ const instrumentPage = (url: string) => {
             '--disable-cpu-throttling',
             '--disable-network-throttling',
         ]
-
         if (configPath) {
             args.push(`--config-path=${path.resolve(configPath)}`)
         }
 
-        const lighthousePath = require.resolve('lighthouse/lighthouse-cli/index.js')
-        const lighthouse = spawn(lighthousePath, args);
-
-        let output = "";
-        lighthouse.stdout.on('data', (data) => {
-            output += data;
-        });
-        lighthouse.once('close', async () => {
+        const lighthousePath = require.resolve('lighthouse/lighthouse-cli/index.js');
+        
+        exec(`node ${lighthousePath} ${args.join(' ')}`, async (_err, stdout, _stderr) => {
             const uri = Url.parse(url);
-            const stats = JSON.parse(output);
+            const stats = JSON.parse(stdout);
             const ttfb = get(stats, 'audits.time-to-first-byte.numericValue');
 
             let properties = {};
@@ -86,8 +80,8 @@ const instrumentPage = (url: string) => {
                 properties
             });
 
-            await writeAsync(`./output/${kebabCase(url.replace('https://', ''))}.json`, output);
-            resolve(output);
+            await writeAsync(`./output/${kebabCase(url.replace('https://', ''))}.json`, stdout);
+            resolve(stdout);
         });
     });
 };
