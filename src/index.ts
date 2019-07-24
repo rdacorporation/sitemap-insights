@@ -81,7 +81,7 @@ const instrumentPage = (url: string) => {
             });
 
             await writeAsync(`./output/${kebabCase(url.replace('https://', ''))}.json`, stdout);
-            resolve(stdout);
+            resolve();
         });
     });
 };

@@ -11,7 +11,7 @@
     "build": "tsc -p tsconfig.release.json",
     "build:watch": "tsc -w -p tsconfig.release.json",
     "start": "run-s build \"start:insights {@}\" --",
-    "start:insights": "node ./lib/index.js"
+    "start:insights": "node ./lib/index.js --max-old-space-size=4096"
   },
   "dependencies": {
     "applicationinsights": "^1.4.0",
