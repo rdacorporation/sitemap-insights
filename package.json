@@ -1,6 +1,6 @@
 {
   "name": "sitemap-insights",
-  "version": "0.1.2",
+  "version": "0.1.5",
   "description": "Report Lighthouse results from all urls in a sitemap.xml to Application Insights",
   "main": "lib/index.js",
   "repository": "https://github.com/rdacorporation/sitemap-insights",
@@ -18,13 +18,14 @@
     "axios": "^0.19.0",
     "chrome-launcher": "^0.11.1",
     "debug": "^4.1.1",
+    "execa": "^2.0.3",
     "fs-jetpack": "^2.2.2",
     "lighthouse": "^5.1.0",
     "lodash": "^4.17.15",
     "minimist": "^1.2.0",
     "moment": "^2.24.0",
-    "p-all": "^2.1.0",
     "puppeteer": "^1.19.0",
+    "puppeteer-cluster": "^0.16.0",
     "xml-js": "^1.6.11"
   },
   "devDependencies": {
@@ -32,6 +33,7 @@
     "@types/minimist": "^1.2.0",
     "@types/node": "^12.6.8",
     "@types/prettier": "^1.18.0",
+    "@types/puppeteer": "^1.12.4",
     "eslint": "^6.1.0",
     "eslint-config-prettier": "^6.0.0",
     "eslint-plugin-prettier": "^3.1.0",
