@@ -10,17 +10,27 @@ import { xml2js } from 'xml-js';
 import * as path from 'path';
 import * as Url from 'url';
 import * as appInsights from 'applicationinsights';
+
 import * as minimist from 'minimist';
 import { TaskFunction } from 'puppeteer-cluster/dist/Cluster';
+
+import { Consts } from './consts';
+import { LighthouseJobData, Sitemap } from './types';
 
 const debug = createDebug('sitemap-insights');
 createDebug.enable('sitemap-insights');
 
+// Setup defaults
 const argv = minimist(process.argv.slice(2));
 const sitemapUrl = argv.url;
-const aiInstrumentationKey = process.env.APPINSIGHTS_INSTRUMENTATIONKEY;
+const APPINSIGHTS_INSTRUMENTATIONKEY = process.env.APPINSIGHTS_INSTRUMENTATIONKEY;
+const STORAGE_ACCOUNT_NAME = process.env.AZURE_STORAGE_ACCOUNT_NAME;
+const ACCOUNT_ACCESS_KEY = process.env.AZURE_STORAGE_ACCOUNT_ACCESS_KEY;
 const maxConcurrency = argv.c || 1;
+const iterations = argv.i || 1;
 const configPath = argv['config-path'];
+let outputPath: string = argv['output-path'] || './output/';
+const containerName: string = argv['container-name'];
 const resume = !!argv.resume;
 
 if (!sitemapUrl) {
@@ -28,10 +38,15 @@ if (!sitemapUrl) {
   process.exit(1);
 }
 
-if (!aiInstrumentationKey) {
+if (!APPINSIGHTS_INSTRUMENTATIONKEY) {
   console.error(
     'No Application Insights Instrumentation Key found. Please set an APPINSIGHTS_INSTRUMENTATIONKEY environment variable.',
   );
+  process.exit(1);
+}
+
+if (!outputPath) {
+  console.error('Please specify the --output-path option to specify the file path to output the results.');
   process.exit(1);
 }
 
@@ -45,6 +60,10 @@ if (maxConcurrency > 1) {
   );
 }
 
+if (iterations > 1) {
+  debug(`Performing ${iterations} iterations.`);
+}
+
 if (configPath) {
   debug(`Using configuration at ${configPath}`);
 }
@@ -53,7 +72,47 @@ if (resume) {
   debug(`Resuming...`);
 }
 
-appInsights.setup().start();
+switch (outputPath.toLowerCase()) {
+  case Consts.AzureStorageOutputPath:
+    if (!STORAGE_ACCOUNT_NAME) {
+      console.error(
+        'When using the azure-storage output-path option, Please set an AZURE_STORAGE_ACCOUNT_NAME environment variable.',
+      );
+      process.exit(1);
+    }
+
+    if (!ACCOUNT_ACCESS_KEY) {
+      console.error(
+        'When using the azure-storage output-path option, Please set an AZURE_STORAGE_ACCOUNT_ACCESS_KEY environment variable.',
+      );
+      process.exit(1);
+    }
+
+    if (!containerName) {
+      console.error(
+        'When using the azure-storage output-path option, Please specify the --container-name option to specify the Azure Storage container name to use.',
+      );
+      process.exit(1);
+    }
+    break;
+  default:
+    if (!outputPath.endsWith('/')) {
+      outputPath += '/';
+    }
+    break;
+}
+
+appInsights
+  .setup()
+  .setAutoDependencyCorrelation(false)
+  .setAutoCollectRequests(false)
+  .setAutoCollectPerformance(false)
+  .setAutoCollectExceptions(true)
+  .setAutoCollectDependencies(false)
+  .setAutoCollectConsole(false)
+  .setUseDiskRetryCaching(true)
+  .start();
+
 // Uncomment this to put Application Insights into test mode.
 // appInsights.defaultClient.config.disableAppInsights = true;
 
@@ -67,6 +126,10 @@ const lighthouseTask: TaskFunction<LighthouseJobData, void> = async props => {
 
   if (configPath) {
     args.push(`--config-path=${configPath}`);
+  }
+
+  if (containerName) {
+    args.push(`--container-name=${containerName}`);
   }
 
   // Spawn a worker process
@@ -94,7 +157,7 @@ const lighthouseTask: TaskFunction<LighthouseJobData, void> = async props => {
 (async () => {
   debug(`Initializing Cluster...`);
 
-  const cluster = await Cluster.launch({
+  const cluster: Cluster<LighthouseJobData, void> = await Cluster.launch({
     concurrency: Cluster.CONCURRENCY_BROWSER, // Important, when using Lighthouse we want browser isolation.
     puppeteerOptions: {
       args: ['--window-size=800x600', '--disable-gpu'],
@@ -104,6 +167,8 @@ const lighthouseTask: TaskFunction<LighthouseJobData, void> = async props => {
     retryLimit: 5,
     timeout: 5 * 60 * 1000, // wait for up to 5 minutes.
     maxConcurrency,
+    skipDuplicateUrls: false,
+    retryDelay: 1000,
   });
 
   debug(`Retrieving sitemap from ${sitemapUrl}`);
@@ -117,22 +182,33 @@ const lighthouseTask: TaskFunction<LighthouseJobData, void> = async props => {
     debug(`${sitemap.urlset.url.length} urls found in sitemap.`);
 
     let queuedUrls = 0;
-    for (const sitemapUrl of sitemap.urlset.url) {
-      const url = sitemapUrl.loc._text;
-      const outputPath = path.resolve(`./output/${kebabCase(url.replace(/^http(s)?:\/\//, ''))}.json`);
+    for (let i = 0; i < iterations; i++) {
+      debug(i);
+      for (const sitemapUrl of sitemap.urlset.url) {
+        const url = sitemapUrl.loc._text;
+        let resolvedOutputPath = outputPath;
+        switch (outputPath.toLowerCase()) {
+          case Consts.AzureStorageOutputPath:
+            // Do Nothing
+            break;
+          default:
+            resolvedOutputPath = path.resolve(`${outputPath}${kebabCase(url.replace(/^http(s)?:\/\//, ''))}.json`);
+            break;
+        }
 
-      if (resume && !exists(outputPath)) {
-        cluster.queue({
-          url,
-          outputPath,
-        });
-        queuedUrls++;
+        if (!resume || (resume && !exists(resolvedOutputPath))) {
+          cluster.queue({
+            url,
+            outputPath: resolvedOutputPath,
+          });
+          queuedUrls++;
+        }
       }
     }
 
     debug(`${queuedUrls} urls added to the queue.`);
   } catch (err) {
-    debug(`Unable to process stiemap at ${sitemapUrl}: ${err.message}`);
+    debug(`Unable to process sitemap at ${sitemapUrl}: ${err.message}`);
     process.exit(1);
   }
 
@@ -140,22 +216,3 @@ const lighthouseTask: TaskFunction<LighthouseJobData, void> = async props => {
   await cluster.close();
   debug('All Done!');
 })();
-
-interface Sitemap {
-  urlset: {
-    _attributes: any;
-    url: SitemapUrl[];
-  };
-}
-
-interface SitemapUrl {
-  loc: {
-    _text: string;
-  };
-  lastmod: string;
-}
-
-interface LighthouseJobData {
-  url: string;
-  outputPath: string;
-}

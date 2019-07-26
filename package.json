@@ -1,6 +1,6 @@
 {
   "name": "sitemap-insights",
-  "version": "0.1.6",
+  "version": "0.2.2",
   "description": "Generate Lighthouse reports from all urls in a sitemap.xml and output metrics to Application Insights",
   "main": "lib/index.js",
   "repository": "https://github.com/rdacorporation/sitemap-insights",
@@ -27,6 +27,7 @@
     "start:insights": "node ./lib/index.js --max-old-space-size=4096"
   },
   "dependencies": {
+    "@azure/storage-blob": "^10.3.0",
     "applicationinsights": "^1.4.0",
     "axios": "^0.19.0",
     "chrome-launcher": "^0.11.1",
