@@ -1,6 +1,6 @@
 ## sitemap-insights
 
-A command-line tool that retrieves a sitemap.xml from a site and audits every page contained within Lighthouse+Headless Chrome. The page metrics are then reported to Application Insights for analysis.
+A command-line tool that retrieves a sitemap.xml from a site and audits every page contained within using Lighthouse+Headless Chrome. The page metrics are then reported to Application Insights for analysis.
 
 Features:
 
