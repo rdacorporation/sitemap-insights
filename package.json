@@ -1,15 +1,28 @@
 {
   "name": "sitemap-insights",
-  "version": "0.1.5",
-  "description": "Report Lighthouse results from all urls in a sitemap.xml to Application Insights",
+  "version": "0.1.6",
+  "description": "Generate Lighthouse reports from all urls in a sitemap.xml and output metrics to Application Insights",
   "main": "lib/index.js",
   "repository": "https://github.com/rdacorporation/sitemap-insights",
   "author": "Sean McLellan",
   "license": "MIT",
   "private": false,
+  "keywords": [
+    "Web",
+    "Performance",
+    "Lighthouse",
+    "Application Insights"
+  ],
+  "bin": {
+    "sitemap-insights": "./lib/index.js",
+    "sitemap-insights-worker": "./lib/worker.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.release.json",
     "build:watch": "tsc -w -p tsconfig.release.json",
+    "prettier": "prettier --write \"src/**/*.{ts,js}\"",
+    "pre-commit-prettier": "pretty-quick --staged",
+    "stage-build": "git add lib",
     "start": "run-s build \"start:insights {@}\" --",
     "start:insights": "node ./lib/index.js --max-old-space-size=4096"
   },
@@ -37,9 +50,16 @@
     "eslint": "^6.1.0",
     "eslint-config-prettier": "^6.0.0",
     "eslint-plugin-prettier": "^3.1.0",
+    "husky": "^3.0.1",
     "npm-run-all": "^4.1.5",
     "prettier": "^1.18.2",
+    "pretty-quick": "^1.11.1",
     "ts-node": "^8.3.0",
     "typescript": "^3.5.3"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "run-s build stage-build pre-commit-prettier"
+    }
   }
 }
