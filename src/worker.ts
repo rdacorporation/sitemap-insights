@@ -22,6 +22,7 @@ const port: number = argv.port;
 const configPath: string = argv['config-path'];
 const outputPath: string = argv['output-path'];
 const containerName: string = argv['container-name'];
+const tag: string = argv['tag'] || '';
 const STORAGE_ACCOUNT_NAME = process.env.AZURE_STORAGE_ACCOUNT_NAME;
 const ACCOUNT_ACCESS_KEY = process.env.AZURE_STORAGE_ACCOUNT_ACCESS_KEY;
 
@@ -78,7 +79,9 @@ appInsights
     const endTime = moment();
     let duration = endTime.diff(startTime);
 
-    let properties = {};
+    let properties = {
+      tag,
+    };
     let resultCode = 200;
 
     // Add data collected in the Lighthouse audit to the dependency trace submitted to Application Insights
@@ -135,6 +138,9 @@ appInsights
         await blockBlobURL.upload(Aborter.none, content, content.length, {
           blobHTTPHeaders: {
             blobContentType: 'text/html',
+          },
+          metadata: {
+            tag,
           },
         });
         break;

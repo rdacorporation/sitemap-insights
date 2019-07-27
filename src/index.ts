@@ -4,6 +4,7 @@ import createDebug from 'debug';
 import { Cluster } from 'puppeteer-cluster';
 import { exists } from 'fs-jetpack';
 import * as kebabCase from 'lodash/kebabCase';
+import * as moment from 'moment';
 import * as execa from 'execa';
 import axios from 'axios';
 import { xml2js } from 'xml-js';
@@ -20,6 +21,8 @@ import { LighthouseJobData, Sitemap } from './types';
 const debug = createDebug('sitemap-insights');
 createDebug.enable('sitemap-insights');
 
+const overallStartTime = moment();
+
 // Setup defaults
 const argv = minimist(process.argv.slice(2));
 const sitemapUrl = argv.url;
@@ -31,6 +34,7 @@ const iterations = argv.i || 1;
 const configPath = argv['config-path'];
 let outputPath: string = argv['output-path'] || './output/';
 const containerName: string = argv['container-name'];
+const tag: string = argv['tag'] || overallStartTime.format('YYYY-MM-DD_HH-mm-ss');
 const resume = !!argv.resume;
 
 if (!sitemapUrl) {
@@ -122,7 +126,7 @@ const lighthouseTask: TaskFunction<LighthouseJobData, void> = async props => {
   const browser = page.browser();
   const port = Url.parse(browser.wsEndpoint()).port;
 
-  const args = [`--url=${data.url}`, `--port=${port}`, `--output-path=${data.outputPath}`];
+  const args = [`--url=${data.url}`, `--port=${port}`, `--output-path=${data.outputPath}`, `--tag=${tag}`];
 
   if (configPath) {
     args.push(`--config-path=${configPath}`);
