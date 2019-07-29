@@ -5,8 +5,10 @@ export const Consts = {
 export const DefaultDesktopConfig = {
   extends: 'lighthouse:default',
   settings: {
+    maxWaitForFcp: 5 * 60 * 1000,
     maxWaitForLoad: 5 * 60 * 1000,
     emulatedFormFactor: 'desktop',
+    throttlingMethod: 'provided',
     throttling: {
       // Using a "broadband" connection type
       // Corresponds to "Dense 4G 25th percentile" in https://docs.google.com/document/d/1-p4HSp42REEA5-jCBVB6PqQcVhI1nQIblBCNKhPJUXg/edit#heading=h.bb7nfy2x9e5v

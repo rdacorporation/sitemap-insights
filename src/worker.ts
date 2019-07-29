@@ -158,7 +158,10 @@ appInsights
         url,
         starTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
+        tag,
       },
     });
+  } finally {
+    appInsights.defaultClient.flush();
   }
 })();
