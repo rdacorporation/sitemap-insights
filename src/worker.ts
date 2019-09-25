@@ -120,6 +120,17 @@ appInsights
       }
     }
 
+    const categories = results.lhr['categories'];
+    if (categories) {
+      // For any category that contains a 'score' property, add that item.
+      for (const key of Object.keys(categories)) {
+        const metric = categories[key];
+        if (metric['score'] !== undefined && metric['score'] !== null) {
+          properties[`${key}-category-score`] = metric['score'];
+        }
+      }
+    }
+
     appInsights.defaultClient.trackDependency({
       name: `GET ${uri.pathname}`,
       data: url,
