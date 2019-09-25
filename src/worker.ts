@@ -87,11 +87,15 @@ appInsights
     // Add data collected in the Lighthouse audit to the dependency trace submitted to Application Insights
     const audits = results.lhr['audits'];
     if (audits) {
-      // For any audit that contains a 'numericValue' property, add that item.
+      // For any audit that contains a 'numericValue' or 'score' property, add that item.
       for (const key of Object.keys(audits)) {
         const metric = audits[key];
         if (metric['numericValue']) {
           properties[key] = metric['numericValue'];
+        }
+
+        if (metric['score'] !== undefined && metric['score'] !== null) {
+          properties[`${key}-score`] = metric['score'];
         }
       }
 
