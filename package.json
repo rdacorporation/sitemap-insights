@@ -38,7 +38,7 @@
     "fs-jetpack": "^2.2.2",
     "lighthouse": "^5.4.0",
     "lodash": "^4.17.15",
-    "minimist": "^1.2.0",
+    "minimist": "^1.2.2",
     "moment": "^2.24.0",
     "puppeteer": "^1.20.0",
     "puppeteer-cluster": "^0.17.0",
