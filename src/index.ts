@@ -5,7 +5,7 @@ import { Cluster } from 'puppeteer-cluster';
 import { exists } from 'fs-jetpack';
 import * as kebabCase from 'lodash/kebabCase';
 import * as moment from 'moment';
-import * as execa from 'execa';
+import execa from 'execa';
 import axios from 'axios';
 import { xml2js } from 'xml-js';
 import * as path from 'path';
@@ -26,7 +26,7 @@ const overallStartTime = moment();
 // Setup defaults
 const argv = minimist(process.argv.slice(2));
 const sitemapUrl = argv.url;
-const APPINSIGHTS_INSTRUMENTATIONKEY = process.env.APPINSIGHTS_INSTRUMENTATIONKEY;
+const APPLICATIONINSIGHTS_CONNECTION_STRING = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING;
 const STORAGE_ACCOUNT_NAME = process.env.AZURE_STORAGE_ACCOUNT_NAME;
 const ACCOUNT_ACCESS_KEY = process.env.AZURE_STORAGE_ACCOUNT_ACCESS_KEY;
 const maxConcurrency = argv.c || 1;
@@ -42,9 +42,9 @@ if (!sitemapUrl) {
   process.exit(1);
 }
 
-if (!APPINSIGHTS_INSTRUMENTATIONKEY) {
+if (!APPLICATIONINSIGHTS_CONNECTION_STRING) {
   console.error(
-    'No Application Insights Instrumentation Key found. Please set an APPINSIGHTS_INSTRUMENTATIONKEY environment variable.',
+    'No Application Insights Connection String found. Please set an APPLICATIONINSIGHTS_CONNECTION_STRING environment variable.',
   );
   process.exit(1);
 }
@@ -183,13 +183,30 @@ const lighthouseTask: TaskFunction<LighthouseJobData, void> = async props => {
     await cluster.task(lighthouseTask);
 
     const sitemap = xml2js(response.data, { compact: true }) as Sitemap;
-    debug(`${sitemap.urlset.url.length} urls found in sitemap.`);
+    const sitemapUrls: string[] = [];
+    for(const sitemapUrl of sitemap.urlset.url) {
+      const url = sitemapUrl.loc._text;
+
+      // if the url ends with .xml then we need to retrieve the nested sitemap and add the urls to the queue.
+      if(url.endsWith('.xml')) {
+        const nestedSitemapResponse = await axios.get(url);
+        const nestedSitemap = xml2js(nestedSitemapResponse.data, { compact: true }) as Sitemap;
+        for(const nestedSitemapUrl of nestedSitemap.urlset.url) {
+          sitemapUrls.push(nestedSitemapUrl.loc._text);
+        }
+      }
+      else {
+        sitemapUrls.push(url);
+      }
+    }
+
+    debug(`${sitemapUrls.length} urls found in sitemap.`);
 
     let queuedUrls = 0;
     for (let i = 0; i < iterations; i++) {
       debug(i);
-      for (const sitemapUrl of sitemap.urlset.url) {
-        const url = sitemapUrl.loc._text;
+      for (const sitemapUrl of sitemapUrls) {
+        const url = sitemapUrl;
         let resolvedOutputPath = outputPath;
         switch (outputPath.toLowerCase()) {
           case Consts.AzureStorageOutputPath:

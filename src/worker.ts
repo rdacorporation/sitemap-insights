@@ -6,12 +6,13 @@ import * as get from 'lodash/get';
 import * as kebabCase from 'lodash/kebabCase';
 import { readAsync, writeAsync } from 'fs-jetpack';
 import * as appInsights from 'applicationinsights';
-import { Aborter, BlockBlobURL, ContainerURL, ServiceURL, SharedKeyCredential, StorageURL } from '@azure/storage-blob';
+import { ContainerClient, StorageSharedKeyCredential } from '@azure/storage-blob';
 import * as lighthouse from 'lighthouse';
 import * as minimist from 'minimist';
 import * as Url from 'url';
 
-import { Consts, DefaultDesktopConfig } from './consts';
+import { Consts } from './consts';
+import defaultDesktopConfig from './config/desktop-config';
 
 const debug = createDebug('sitemap-insights-worker');
 createDebug.enable('sitemap-insights-worker');
@@ -41,13 +42,14 @@ if (!port) {
   process.exit(1);
 }
 
-let containerURL: ContainerURL;
+let containerClient: ContainerClient;
 switch (outputPath) {
   case Consts.AzureStorageOutputPath:
-    const credentials = new SharedKeyCredential(STORAGE_ACCOUNT_NAME, ACCOUNT_ACCESS_KEY);
-    const pipeline = StorageURL.newPipeline(credentials);
-    const serviceURL = new ServiceURL(`https://${STORAGE_ACCOUNT_NAME}.blob.core.windows.net`, pipeline);
-    containerURL = ContainerURL.fromServiceURL(serviceURL, containerName);
+    const sharedKeyCredential = new StorageSharedKeyCredential(STORAGE_ACCOUNT_NAME, ACCOUNT_ACCESS_KEY);
+    containerClient = new ContainerClient(
+      `https://${STORAGE_ACCOUNT_NAME}.blob.core.windows.net/${containerName}`,
+      sharedKeyCredential
+    );
     break;
 }
 
@@ -64,10 +66,10 @@ appInsights
   .setUseDiskRetryCaching(true)
   .start();
 // Uncomment this to put Application Insights into test mode.
-// appInsights.defaultClient.config.disableAppInsights = true;
+appInsights.defaultClient.config.disableAppInsights = true;
 
 (async () => {
-  let config = DefaultDesktopConfig;
+  let config = defaultDesktopConfig;
   if (configPath) {
     const configData = await readAsync(configPath);
     config = JSON.parse(configData);
@@ -149,8 +151,8 @@ appInsights
           'YYYY-MM-DD_HH-mm-ss',
         )}.json`;
         const content = JSON.stringify(results.lhr);
-        const blockBlobURL = BlockBlobURL.fromContainerURL(containerURL, blobName);
-        await blockBlobURL.upload(Aborter.none, content, content.length, {
+        const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+        await blockBlobClient.upload(content, content.length, {
           blobHTTPHeaders: {
             blobContentType: 'text/html',
           },

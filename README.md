@@ -26,7 +26,7 @@ Features:
 | `--container-name` | Indicates an existing container name to use (required when using the `--output-Path azure-storage` option) |                   [string] |
 |            `--tag` | Adds a custom dimension named 'tag' to each AI metric (optional)                                           | [default: start date/time] |
 
-> An `APPINSIGHTS_INSTRUMENTATIONKEY` environment variable needs to be set with the instrumentation key of the intended AI instance.
+> An `APPLICATIONINSIGHTS_CONNECTION_STRING` environment variable needs to be set with the connection string of the intended AI instance.
 
 > When using the `-output-path azure-storage` option, `AZURE_STORAGE_ACCOUNT_ACCESS_KEY` and `AZURE_STORAGE_ACCOUNT_NAME` environment variables need to be supplied, as well as a previously created `--container-name`
 
