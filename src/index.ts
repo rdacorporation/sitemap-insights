@@ -5,7 +5,7 @@ import { Cluster } from 'puppeteer-cluster';
 import { exists } from 'fs-jetpack';
 import * as kebabCase from 'lodash/kebabCase';
 import * as moment from 'moment';
-import execa from 'execa';
+import * as execa from 'execa';
 import axios from 'axios';
 import { xml2js } from 'xml-js';
 import * as path from 'path';
